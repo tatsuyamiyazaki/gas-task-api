@@ -1,6 +1,16 @@
 function listTasklists(svc, params) {
-  var res = svc.Tasklists.list();
-  return (res.items || []).map(toTasklistDto);
+  var items = [];
+  var pageToken;
+  do {
+    var options = { maxResults: 100 };
+    if (pageToken) {
+      options.pageToken = pageToken;
+    }
+    var res = svc.Tasklists.list(options);
+    items = items.concat(res.items || []);
+    pageToken = res.nextPageToken;
+  } while (pageToken);
+  return items.map(toTasklistDto);
 }
 
 function getTasklist(svc, params) {

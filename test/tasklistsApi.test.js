@@ -22,6 +22,30 @@ test('listTasklists は items 無しで空配列を返す', () => {
   assert.deepEqual(ctx.listTasklists(svc, {}), []);
 });
 
+test('listTasklists は nextPageToken を辿って全ページを集約する', () => {
+  const ctx = load();
+  const pages = [
+    { items: [{ id: 'a', title: 'マイタスク', updated: 't1' }], nextPageToken: 'p2' },
+    { items: [{ id: 'b', title: '買い物', updated: 't2' }] }
+  ];
+  const seenOptions = [];
+  let call = 0;
+  const svc = {
+    Tasklists: {
+      list: (options) => {
+        seenOptions.push(options);
+        return pages[call++];
+      }
+    }
+  };
+  const result = ctx.listTasklists(svc, {});
+  assert.deepEqual(result, [
+    { id: 'a', title: 'マイタスク', updated: 't1' },
+    { id: 'b', title: '買い物', updated: 't2' }
+  ]);
+  assert.deepEqual(seenOptions, [{ maxResults: 100 }, { maxResults: 100, pageToken: 'p2' }]);
+});
+
 test('createTasklist は title を渡して DTO を返す', () => {
   const ctx = load();
   let received = null;

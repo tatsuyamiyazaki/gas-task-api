@@ -1,14 +1,24 @@
 function listTasks(svc, params) {
   requireFields(params, ['tasklistId']);
-  var options = {};
+  var baseOptions = { maxResults: 100 };
   if (params.showCompleted !== undefined) {
-    options.showCompleted = params.showCompleted;
+    baseOptions.showCompleted = params.showCompleted;
   }
   if (params.showHidden !== undefined) {
-    options.showHidden = params.showHidden;
+    baseOptions.showHidden = params.showHidden;
   }
-  var res = svc.Tasks.list(params.tasklistId, options);
-  return (res.items || []).map(toTaskDto);
+  var items = [];
+  var pageToken;
+  do {
+    var options = Object.assign({}, baseOptions);
+    if (pageToken) {
+      options.pageToken = pageToken;
+    }
+    var res = svc.Tasks.list(params.tasklistId, options);
+    items = items.concat(res.items || []);
+    pageToken = res.nextPageToken;
+  } while (pageToken);
+  return items.map(toTaskDto);
 }
 
 function getTask(svc, params) {

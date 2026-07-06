@@ -18,9 +18,32 @@ test('listTasks は tasklistId とオプションを渡し DTO 配列を返す',
     }
   };
   const result = ctx.listTasks(svc, { tasklistId: '@default', showCompleted: true });
-  assert.deepEqual(calls, [['@default', { showCompleted: true }]]);
+  assert.deepEqual(calls, [['@default', { maxResults: 100, showCompleted: true }]]);
   assert.strictEqual(result[0].due, '2026-07-10');
   assert.strictEqual(result[0].title, 'A');
+});
+
+test('listTasks は nextPageToken を辿って全ページを集約する', () => {
+  const ctx = load();
+  const pages = [
+    { items: [{ id: 't1', title: 'A' }], nextPageToken: 'p2' },
+    { items: [{ id: 't2', title: 'B' }] }
+  ];
+  const seenTokens = [];
+  let call = 0;
+  const svc = {
+    Tasks: {
+      list: (tasklistId, options) => {
+        seenTokens.push(options.pageToken);
+        return pages[call++];
+      }
+    }
+  };
+  const result = ctx.listTasks(svc, { tasklistId: '@default' });
+  assert.strictEqual(result.length, 2);
+  assert.strictEqual(result[0].id, 't1');
+  assert.strictEqual(result[1].id, 't2');
+  assert.deepEqual(seenTokens, [undefined, 'p2']);
 });
 
 test('listTasks は tasklistId 欠落で VALIDATION を投げる', () => {
